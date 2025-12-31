@@ -12,47 +12,45 @@ module.exports = async (req, res) => {
       const offset = (page - 1) * limit
 
       const where = []
-      const params = []
+      const values = []
 
       if (search) {
-        params.push(`%${search}%`)
-        where.push(`title ILIKE $${params.length}`)
+        values.push(`%${search}%`)
+        where.push(`title ILIKE $${values.length}`)
       }
 
       if (done === "0" || done === "1") {
-        params.push(done === "1")
-        where.push(`done = $${params.length}`)
+        values.push(done === "1")
+        where.push(`done = $${values.length}`)
       }
 
       const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : ""
 
-      // LIST QUERY
-      const listParams = [...params, limit, offset]
-      const listQuery = `
-        SELECT id, title, done, created_at
-        FROM tasks
-        ${whereSql}
-        ORDER BY id DESC
-        LIMIT $${params.length + 1}
-        OFFSET $${params.length + 2}
-      `
+      values.push(limit)
+      values.push(offset)
 
-      // COUNT QUERY
-      const countQuery = `
-        SELECT COUNT(*)::int AS total
-        FROM tasks
-        ${whereSql}
-      `
+      const items = await pool.query(
+        `SELECT id, title, done, created_at
+         FROM tasks
+         ${whereSql}
+         ORDER BY id DESC
+         LIMIT $${values.length - 1} OFFSET $${values.length}`,
+        values
+      )
 
-      const [items, total] = await Promise.all([
-        pool.query(listQuery, listParams),
-        pool.query(countQuery, params)
-      ])
+      const countValues = values.slice(0, values.length - 2)
+
+      const total = await pool.query(
+        `SELECT COUNT(*)::int AS total
+         FROM tasks
+         ${whereSql}`,
+        countValues
+      )
 
       return res.json({
         page,
         limit,
-        total: total.rows[0].total,
+        total: total.rows[0]?.total || 0,
         items: items.rows
       })
     }
@@ -62,11 +60,9 @@ module.exports = async (req, res) => {
       if (!title) return res.status(400).json({ error: "title required" })
 
       const r = await pool.query(
-        `
-        INSERT INTO tasks (title)
-        VALUES ($1)
-        RETURNING id, title, done, created_at
-        `,
+        `INSERT INTO tasks (title)
+         VALUES ($1)
+         RETURNING id, title, done, created_at`,
         [title]
       )
 
@@ -75,7 +71,6 @@ module.exports = async (req, res) => {
 
     return res.status(405).json({ error: "method not allowed" })
   } catch (e) {
-    console.error(e)
-    return res.status(500).json({ error: e.message })
+    return res.status(500).json({ error: String(e.message || e) })
   }
 }

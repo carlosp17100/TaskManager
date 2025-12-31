@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
       FROM tasks
     `)
 
-    const s = r.rows[0]
+    const s = r.rows[0] || { total: 0, done: 0, pending: 0 }
     const donePct = s.total ? Math.round((s.done / s.total) * 100) : 0
 
     return res.json({ ...s, donePct })
