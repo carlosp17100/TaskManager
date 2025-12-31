@@ -12,40 +12,42 @@ module.exports = async (req, res) => {
       const offset = (page - 1) * limit
 
       const where = []
-      const values = []
+      const params = []
 
       if (search) {
-        values.push(`%${search}%`)
-        where.push(`title ILIKE $${values.length}`)
+        params.push(`%${search}%`)
+        where.push(`title ILIKE $${params.length}`)
       }
 
       if (done === "0" || done === "1") {
-        values.push(done === "1")
-        where.push(`done = $${values.length}`)
+        params.push(done === "1")
+        where.push(`done = $${params.length}`)
       }
 
       const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : ""
 
-      values.push(limit)
-      const limitIdx = values.length
-      values.push(offset)
-      const offsetIdx = values.length
-
-      const items = await pool.query(
-        `
+      // LIST QUERY
+      const listParams = [...params, limit, offset]
+      const listQuery = `
         SELECT id, title, done, created_at
         FROM tasks
         ${whereSql}
         ORDER BY id DESC
-        LIMIT $${limitIdx} OFFSET $${offsetIdx}
-        `,
-        values
-      )
+        LIMIT $${params.length + 1}
+        OFFSET $${params.length + 2}
+      `
 
-      const total = await pool.query(
-        `SELECT COUNT(*)::int AS total FROM tasks ${whereSql}`,
-        values.slice(0, where.length ? values.length - 2 : values.length - 2)
-      )
+      // COUNT QUERY
+      const countQuery = `
+        SELECT COUNT(*)::int AS total
+        FROM tasks
+        ${whereSql}
+      `
+
+      const [items, total] = await Promise.all([
+        pool.query(listQuery, listParams),
+        pool.query(countQuery, params)
+      ])
 
       return res.json({
         page,
@@ -73,6 +75,7 @@ module.exports = async (req, res) => {
 
     return res.status(405).json({ error: "method not allowed" })
   } catch (e) {
-    return res.status(500).json({ error: String(e.message || e) })
+    console.error(e)
+    return res.status(500).json({ error: e.message })
   }
 }
