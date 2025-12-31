@@ -3,16 +3,21 @@ const { Pool } = require("pg")
 let pool
 
 const getPool = () => {
-  if (!pool) {
-    pool = new Pool({
-      host: process.env.POSTGRES_HOST,
-      user: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
-      database: process.env.POSTGRES_DATABASE,
-      port: 5432,
-      ssl: { rejectUnauthorized: false }
-    })
-  }
+  if (pool) return pool
+
+  const connectionString =
+    process.env.POSTGRES_URL_NON_POOLING ||
+    process.env.POSTGRES_URL ||
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_PRISMA_URL
+
+  if (!connectionString) throw new Error("Missing DATABASE_URL/POSTGRES_URL")
+
+  pool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false }
+  })
+
   return pool
 }
 
