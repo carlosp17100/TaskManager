@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-
 # TaskManager
 
 Full-stack Task Manager built with vanilla JavaScript, Express and SQLite.
