@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <div>
+          <h1>Task Manager</h1>
+          <p class="muted">Carlos Peña</p>
+        </div>
+      </header>
+
+      <section class="card">
+        <form id="createForm" class="row">
+          <input id="titleInput" class="input" placeholder="Nueva tarea..." autocomplete="off" />
+          <button class="btn primary" type="submit">Agregar</button>
+        </form>
+        <div id="createError" class="error hidden"></div>
+      </section>
+
+      <section class="grid">
+        <div class="card stat">
+          <div class="muted">Total</div>
+          <div id="statTotal" class="statValue">0</div>
+        </div>
+        <div class="card stat">
+          <div class="muted">Hechas</div>
+          <div id="statDone" class="statValue">0</div>
+        </div>
+        <div class="card stat">
+          <div class="muted">Pendientes</div>
+          <div id="statPending" class="statValue">0</div>
+        </div>
+        <div class="card stat">
+          <div class="muted">% Hechas</div>
+          <div id="statPct" class="statValue">0%</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="toolbar">
+          <div class="segmented">
+            <button class="segBtn active" data-done="" type="button">Todas</button>
+            <button class="segBtn" data-done="0" type="button">Pendientes</button>
+            <button class="segBtn" data-done="1" type="button">Completadas</button>
+          </div>
+          <input id="searchInput" class="input" placeholder="Buscar..." autocomplete="off" />
+        </div>
+
+        <div id="statusBar" class="status muted"></div>
+        <ul id="list" class="list"></ul>
+
+        <div class="pagination">
+          <button id="prevBtn" class="btn" type="button">Prev</button>
+          <div id="pageInfo" class="muted">Página 1</div>
+          <button id="nextBtn" class="btn" type="button">Next</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
