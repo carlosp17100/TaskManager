@@ -18,12 +18,12 @@ const api = {
     if (state.search.trim()) qs.set("search", state.search.trim())
 
     const r = await fetch(`/api/tasks?${qs.toString()}`)
-    if (!r.ok) throw new Error("list failed")
+    if (!r.ok) throw new Error(`list failed (${r.status})`)
     return r.json()
   },
   async stats() {
-    const r = await fetch("/api/tasks/stats")
-    if (!r.ok) throw new Error("stats failed")
+    const r = await fetch("/api/tasks-stats")
+    if (!r.ok) throw new Error(`stats failed (${r.status})`)
     return r.json()
   },
   async create(title) {
@@ -33,22 +33,22 @@ const api = {
       body: JSON.stringify({ title })
     })
     const data = await r.json().catch(() => null)
-    if (!r.ok) throw new Error(data?.error || "create failed")
+    if (!r.ok) throw new Error(data?.error || `create failed (${r.status})`)
     return data
   },
   async patch(id, payload) {
-    const r = await fetch(`/api/tasks/${id}`, {
+    const r = await fetch(`/api/task-id?id=${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     })
     const data = await r.json().catch(() => null)
-    if (!r.ok) throw new Error(data?.error || "patch failed")
+    if (!r.ok) throw new Error(data?.error || `patch failed (${r.status})`)
     return data
   },
   async remove(id) {
-    const r = await fetch(`/api/tasks/${id}`, { method: "DELETE" })
-    if (!r.ok && r.status !== 204) throw new Error("delete failed")
+    const r = await fetch(`/api/task-id?id=${id}`, { method: "DELETE" })
+    if (!r.ok && r.status !== 204) throw new Error(`delete failed (${r.status})`)
   }
 }
 
