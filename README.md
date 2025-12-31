@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # TaskManager
 
 Full-stack Task Manager built with vanilla JavaScript, Express and SQLite.
@@ -38,3 +39,6 @@ node server.js
 ## open server
 
 http://localhost:3001
+=======
+# TaskManager
+>>>>>>> ed9123d8d63706d1f7e9f749820996a6826e164b
