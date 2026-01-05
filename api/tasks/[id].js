@@ -1,12 +1,13 @@
-const { getSql, initDb } = require("./_db")
+const { getSql, initDb } = require("../_db")
 
 module.exports = async (req, res) => {
   try {
     await initDb()
     const sql = getSql()
 
-    const { id } = req.query || {}
-    const taskId = parseInt(id, 10)
+    const idRaw = req.query && req.query.id
+    const taskId = parseInt(Array.isArray(idRaw) ? idRaw[0] : idRaw, 10)
+
     if (!taskId) {
       res.status(400).json({ error: "Invalid id" })
       return
@@ -52,12 +53,10 @@ module.exports = async (req, res) => {
         WHERE id = ${taskId}
         RETURNING id, title, done, created_at;
       `
-
       if (!rows.length) {
         res.status(404).json({ error: "Not found" })
         return
       }
-
       res.status(200).json(rows[0])
       return
     }

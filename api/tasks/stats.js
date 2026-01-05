@@ -1,5 +1,5 @@
-const { getSql, initDb } = require("./_db")
-const { getUid } = require("./_uid")
+const { getSql, initDb } = require("../_db")
+const { getUid } = require("../_uid")
 
 module.exports = async (req, res) => {
   try {
@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
     const pending = r[0]?.pending ?? 0
     const pctDone = total === 0 ? 0 : Math.round((done / total) * 100)
 
-    res.status(200).json({ total, done, pending, pctDone })
+    res.status(200).json({ total, done, pending, pctDone, percentDone: pctDone })
   } catch (e) {
     res.status(500).json({ error: e.message || "Server error" })
   }

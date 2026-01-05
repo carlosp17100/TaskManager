@@ -1,76 +1,77 @@
-const { getPool } = require("./_db")
+const { getSql, initDb } = require("./_db")
+const { getUid } = require("./_uid")
 
 module.exports = async (req, res) => {
   try {
-    const pool = getPool()
+    await initDb()
+    const sql = getSql()
+    const uid = getUid(req, res)
 
     if (req.method === "GET") {
-      const search = String(req.query.search || "").trim()
-      const done = req.query.done
-      const page = Math.max(1, Number(req.query.page || 1))
-      const limit = Math.min(50, Math.max(1, Number(req.query.limit || 10)))
+      const q = String((req.query && req.query.q) || "").trim()
+      const page = Math.max(parseInt((req.query && req.query.page) || "1", 10) || 1, 1)
+      const limit = Math.min(Math.max(parseInt((req.query && req.query.limit) || "10", 10) || 10, 1), 100)
       const offset = (page - 1) * limit
 
-      const where = []
-      const values = []
+      const doneParam = (req.query && req.query.done)
+      const hasDone = doneParam !== undefined && doneParam !== null && String(doneParam) !== ""
+      const doneVal = String(doneParam) === "1" || String(doneParam).toLowerCase() === "true"
 
-      if (search) {
-        values.push(`%${search}%`)
-        where.push(`title ILIKE $${values.length}`)
-      }
+      const like = `%${q}%`
 
-      if (done === "0" || done === "1") {
-        values.push(done === "1")
-        where.push(`done = $${values.length}`)
-      }
+      const rows = await sql`
+        SELECT id, title, done, created_at
+        FROM tasks
+        WHERE user_id = ${uid}
+          AND (${like} = '%%' OR title ILIKE ${like})
+          AND (${hasDone} = false OR done = ${doneVal})
+        ORDER BY id DESC
+        LIMIT ${limit}
+        OFFSET ${offset};
+      `
 
-      const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : ""
+      const totalRes = await sql`
+        SELECT COUNT(*)::int AS total
+        FROM tasks
+        WHERE user_id = ${uid}
+          AND (${like} = '%%' OR title ILIKE ${like})
+          AND (${hasDone} = false OR done = ${doneVal});
+      `
 
-      values.push(limit)
-      values.push(offset)
+      const total = totalRes[0]?.total || 0
 
-      const items = await pool.query(
-        `SELECT id, title, done, created_at
-         FROM tasks
-         ${whereSql}
-         ORDER BY id DESC
-         LIMIT $${values.length - 1} OFFSET $${values.length}`,
-        values
-      )
-
-      const countValues = values.slice(0, values.length - 2)
-
-      const total = await pool.query(
-        `SELECT COUNT(*)::int AS total
-         FROM tasks
-         ${whereSql}`,
-        countValues
-      )
-
-      return res.json({
+      res.status(200).json({
         page,
         limit,
-        total: total.rows[0]?.total || 0,
-        items: items.rows
+        total,
+
+        tasks: rows,
+        items: rows,
+        data: rows
       })
+      return
     }
 
     if (req.method === "POST") {
-      const title = String(req.body?.title || "").trim()
-      if (!title) return res.status(400).json({ error: "title required" })
+      const body = req.body || {}
+      const title = String(body.title || "").trim()
+      if (!title) {
+        res.status(400).json({ error: "Missing title" })
+        return
+      }
 
-      const r = await pool.query(
-        `INSERT INTO tasks (title)
-         VALUES ($1)
-         RETURNING id, title, done, created_at`,
-        [title]
-      )
+      const inserted = await sql`
+        INSERT INTO tasks (user_id, title, done)
+        VALUES (${uid}, ${title}, false)
+        RETURNING id, title, done, created_at;
+      `
 
-      return res.status(201).json(r.rows[0])
+      res.status(201).json(inserted[0])
+      return
     }
 
-    return res.status(405).json({ error: "method not allowed" })
+    res.status(405).json({ error: "Method not allowed" })
   } catch (e) {
-    return res.status(500).json({ error: String(e.message || e) })
+    res.status(500).json({ error: e.message || "Server error" })
   }
 }
